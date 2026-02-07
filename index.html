@@ -10,12 +10,6 @@
   <script type="module" src="https://cdn.jsdelivr.net/npm/@hot-page/hotfx-split-flap@0.0.1"></script>
 
   <style>
-    /*
-      Put CascadiaCode-Regular.ttf next to this HTML file.
-      Icons are loaded from the URLs you gave (see ICON_URLS in <script>).
-      Split-flap output uses <hotfx-split-flap> from HotFX, but commas are rendered as normal text.
-    */
-
     @font-face{
       font-family: "Cascadia Code Web";
       src: url("CascadiaCode-Regular.ttf") format("truetype");
@@ -542,18 +536,22 @@
       font-weight: 800;
       letter-spacing: .02em;
       cursor:pointer;
-
+    
       box-shadow:
         0 14px 30px rgba(0,0,0,.30),
         inset 0 1px 0 rgba(255,255,255,.08);
-
+    
       transition:
         transform var(--fast) var(--ease),
         box-shadow var(--fast) var(--ease),
         filter var(--fast) var(--ease),
         border-color var(--fast) var(--ease);
     }
-
+    #calcBtn{
+      font-family: "Cascadia Code Web", monospace;
+      font-weight: 400;
+    }
+    
     .btn:hover{
       transform: translateY(-2px);
       filter: brightness(1.05);
@@ -562,7 +560,7 @@
         0 18px 36px rgba(0,0,0,.34),
         inset 0 1px 0 rgba(255,255,255,.10);
     }
-
+    
     .btn:active{
       transform: translateY(0);
       filter: brightness(.98);
@@ -908,7 +906,7 @@
             </div>
 
             <div class="formActions">
-              <button class="btn" id="calcBtn" font-family="Cascadia Code Web" type="button">Calculate</button>
+              <button class="btn" id="calcBtn" type="button">Calculate</button>
               <div id="err" class="err"></div>
             </div>
           </div>
