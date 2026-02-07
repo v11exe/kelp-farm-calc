@@ -1,0 +1,1194 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ratio Buyer</title>
+
+  <style>
+    /*
+      Put CascadiaCode-Regular.ttf next to this HTML file.
+      Icons are loaded from the URLs you gave (see ICON_URLS in <script>).
+    */
+
+    @font-face{
+      font-family: "Cascadia Code Web";
+      src: url("CascadiaCode-Regular.ttf") format("truetype");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root{
+      --bg0:#070a11;
+      --bg1:#0b1020;
+
+      --rodGlow: rgba(255, 172, 78, .22);
+      --rodStroke: rgba(255, 172, 78, .45);
+
+      --boneGlow: rgba(106, 174, 255, .18);
+      --boneStroke: rgba(106, 174, 255, .42);
+
+      --card: rgba(13, 18, 28, .54);
+      --inner: rgba(10, 14, 22, .52);
+
+      --stroke: rgba(255,255,255,.10);
+      --stroke2: rgba(255,255,255,.12);
+
+      --text:#eaf0fb;
+      --muted:#aebbd0;
+
+      --money:#3cff75;
+      --btnA:#0f2a2f;
+      --btnB:#0a2024;
+
+      --radiusOuter: 28px;
+      --radiusInner: 20px;
+
+      --shadow: 0 26px 85px rgba(0,0,0,.60);
+      --shadowIn: inset 0 1px 0 rgba(255,255,255,.08);
+
+      --ease: cubic-bezier(.2,.85,.2,1);
+      --fast: 140ms;
+      --med: 220ms;
+      --slow: 520ms;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: "Cascadia Code Web", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      color:var(--text);
+      min-height:100vh;
+      padding: 36px 28px;
+      overflow-x:hidden;
+
+      background:
+        radial-gradient(900px 700px at 16% 28%, rgba(255, 172, 78, .18), transparent 60%),
+        radial-gradient(1000px 760px at 84% 30%, rgba(106, 174, 255, .14), transparent 62%),
+        linear-gradient(90deg, rgba(255, 172, 78, .08) 0 48%, rgba(106, 174, 255, .07) 52% 100%),
+        radial-gradient(1400px 900px at 50% 30%, rgba(0,0,0,0), rgba(0,0,0,.65)),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+    }
+
+    /* Grain + vignette */
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      opacity:.20;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+    }
+    body::after{
+      content:"";
+      position:fixed;
+      inset:-1px;
+      pointer-events:none;
+      background: radial-gradient(1400px 900px at 50% 40%, rgba(0,0,0,0), rgba(0,0,0,.60));
+      opacity:.75;
+    }
+
+    .app{
+      position:relative;
+      width: 100%;
+      margin: 0 auto;
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(520px, 1fr));
+      gap: 22px;
+      z-index: 1;
+      min-height: calc(100vh - 72px);
+      align-content: stretch;
+      animation: fadeUp var(--slow) var(--ease) both;
+    }
+
+    @keyframes fadeUp{
+      from{opacity:0; transform: translateY(10px)}
+      to{opacity:1; transform: translateY(0)}
+    }
+
+    @media (max-width: 980px){
+      .app{grid-template-columns: 1fr}
+    }
+
+    .pane{
+      position:relative;
+      border-radius: var(--radiusOuter);
+      padding: 22px;
+      background: var(--card);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+      transition: transform var(--med) var(--ease);
+    }
+    .pane:hover{ transform: translateY(-1px); }
+
+    /* Gradient stroke (masked border) */
+    .pane::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius: inherit;
+      padding: 1px;
+      background: var(--paneStroke);
+      opacity: .90;
+      pointer-events:none;
+
+      -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+    }
+
+    /* Outer glow */
+    .pane::after{
+      content:"";
+      position:absolute;
+      inset:-40px;
+      border-radius: inherit;
+      background: radial-gradient(520px 320px at 24% 18%, var(--paneGlow), transparent 62%);
+      filter: blur(34px);
+      opacity:.55;
+      pointer-events:none;
+      z-index:-1;
+    }
+
+    .pane.left{
+      --paneStroke: linear-gradient(180deg, rgba(255, 172, 78, .62), rgba(255, 172, 78, .16));
+      --paneGlow: var(--rodGlow);
+    }
+    .pane.right{
+      --paneStroke: linear-gradient(180deg, rgba(106, 174, 255, .58), rgba(106, 174, 255, .16));
+      --paneGlow: var(--boneGlow);
+    }
+
+    .titleRow{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .titleIcons{
+      display:flex;
+      align-items:center;
+      gap: 6px;
+      transform: translateY(1px);
+    }
+
+    .ico{
+      display:block;
+      width: 22px;
+      height: 22px;
+      object-fit: contain;
+      image-rendering: auto;
+      filter: drop-shadow(0 10px 16px rgba(0,0,0,.48));
+      opacity:.98;
+    }
+
+    .ico.money{
+      width: 24px;
+      height: 24px;
+      filter:
+        drop-shadow(0 0 12px rgba(60,255,117,.20))
+        drop-shadow(0 10px 16px rgba(0,0,0,.48));
+    }
+
+    h1{
+      margin:0;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: .2px;
+    }
+
+    .desc{
+      margin:0;
+      color: rgba(234,240,251,.80);
+      font-size: 13px;
+      line-height: 1.5;
+      max-width: 520px;
+    }
+    .desc .mono{opacity:.92}
+
+    .inner{
+      margin-top: 16px;
+      border-radius: var(--radiusInner);
+      padding: 18px;
+      background:
+        radial-gradient(700px 350px at 25% 10%, rgba(255,255,255,.06), transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.14));
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: var(--shadowIn);
+    }
+
+    .sectionHdr{
+      font-size: 14px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: rgba(190, 205, 224, .78);
+      margin: 0 0 16px 0;
+      font-weight: 800;
+    }
+
+    .form{
+      display:grid;
+      gap: 12px;
+    }
+
+    .field label{
+      display:block;
+      font-size: 14px;
+      color: rgba(190, 205, 224, .92);
+      margin: 0 0 6px 0;
+      font-weight: 650;
+    }
+
+    .row{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 560px){
+      .row{grid-template-columns: 1fr}
+    }
+
+    .inputWrap{
+      position:relative;
+    }
+
+    input{
+      width:100%;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.18);
+      background:
+        linear-gradient(180deg, rgba(0,0,0,.34), rgba(0,0,0,.52));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.06),
+        0 10px 22px rgba(0,0,0,.28);
+      color: rgba(234,240,251,.96);
+
+      padding: 12px 44px 12px 14px;
+      outline:none;
+      font-size: 18px;
+      letter-spacing: .02em;
+
+      transition:
+        transform var(--fast) var(--ease),
+        border-color var(--fast) var(--ease),
+        box-shadow var(--fast) var(--ease),
+        filter var(--fast) var(--ease);
+    }
+
+    input:hover{
+      transform: translateY(-1px);
+      filter: brightness(1.02);
+    }
+
+    input:focus{
+      border-color: rgba(255,255,255,.28);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.08),
+        0 12px 26px rgba(0,0,0,.34),
+        0 0 0 4px rgba(255,255,255,.06);
+      transform: translateY(-1px);
+    }
+
+    .budget input{
+      padding-left: 46px;
+      padding-right: 14px;
+    }
+
+    .inIconL{
+      position:absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 22px;
+      height: 22px;
+      object-fit: contain;
+      image-rendering: auto;
+      opacity: .95;
+      pointer-events:none;
+      filter:
+        drop-shadow(0 0 10px rgba(60,255,117,.18))
+        drop-shadow(0 10px 16px rgba(0,0,0,.48));
+    }
+
+    .inIconR{
+      position:absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 22px;
+      height: 22px;
+      object-fit: contain;
+      image-rendering: auto;
+      opacity: .95;
+      pointer-events:none;
+      filter: drop-shadow(0 10px 16px rgba(0,0,0,.48));
+    }
+
+    .hint{
+      margin-top: 8px;
+      color: rgba(190, 205, 224, .72);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .hint strong{color: rgba(234,240,251,.82); font-weight: 700}
+
+    .examples{
+      margin-top: 6px;
+      display:grid;
+      gap: 6px;
+      color: rgba(190, 205, 224, .66);
+      font-size: 12.8px;
+      line-height: 1.35;
+    }
+
+    .btn{
+      margin-top: 10px;
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(158, 227, 234, .22);
+      background:
+        linear-gradient(180deg, rgba(110,231,255,.12), rgba(110,231,255,.05)),
+        linear-gradient(180deg, rgba(10,32,36,.55), rgba(10,32,36,.78));
+      color: rgba(234,240,251,.94);
+      font-size: 22px;
+      padding: 14px 14px;
+      font-weight: 800;
+      letter-spacing: .02em;
+      cursor:pointer;
+
+      box-shadow:
+        0 14px 30px rgba(0,0,0,.30),
+        inset 0 1px 0 rgba(255,255,255,.08);
+
+      transition:
+        transform var(--fast) var(--ease),
+        box-shadow var(--fast) var(--ease),
+        filter var(--fast) var(--ease),
+        border-color var(--fast) var(--ease);
+    }
+
+    .btn:hover{
+      transform: translateY(-2px);
+      filter: brightness(1.05);
+      border-color: rgba(158, 227, 234, .34);
+      box-shadow:
+        0 18px 36px rgba(0,0,0,.34),
+        inset 0 1px 0 rgba(255,255,255,.10);
+    }
+
+    .btn:active{
+      transform: translateY(0);
+      filter: brightness(.98);
+      box-shadow:
+        0 12px 26px rgba(0,0,0,.28),
+        inset 0 1px 0 rgba(255,255,255,.08);
+    }
+
+    .err{
+      display:none;
+      margin-top: 10px;
+      color: rgba(255, 107, 107, .95);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    /* Right pane result layout */
+    .resultTop{
+      margin-top: 4px;
+      display:grid;
+      gap: 26px;
+      padding: 6px 2px 0 2px;
+    }
+
+    .resItem{
+      display:flex;
+      align-items:flex-start;
+      gap: 12px;
+    }
+
+    .resIcon{
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+      image-rendering: auto;
+      opacity: .97;
+      filter: drop-shadow(0 12px 18px rgba(0,0,0,.50));
+      transform: translateY(8px);
+    }
+
+    .resLabel{
+      color: rgba(190, 205, 224, .88);
+      font-size: 16px;
+      font-weight: 650;
+      margin-top: 2px;
+    }
+
+    .resValue{
+      font-size: 46px;
+      font-weight: 900;
+      letter-spacing: .02em;
+      margin-top: 2px;
+      line-height: 1.02;
+    }
+
+    .stats{
+      margin-top: 8px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 560px){
+      .stats{grid-template-columns: 1fr}
+    }
+
+    .stat{
+      border-radius: 16px;
+      padding: 14px 14px;
+      background:
+        radial-gradient(600px 240px at 20% 10%, rgba(255,255,255,.05), transparent 60%),
+        linear-gradient(180deg, rgba(0,0,0,.26), rgba(0,0,0,.42));
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.06),
+        0 10px 22px rgba(0,0,0,.22);
+
+      transition:
+        transform var(--med) var(--ease),
+        border-color var(--med) var(--ease),
+        filter var(--med) var(--ease);
+    }
+    .stat:hover{
+      transform: translateY(-1px);
+      border-color: rgba(255,255,255,.18);
+      filter: brightness(1.02);
+    }
+
+    .statT{
+      color: rgba(190, 205, 224, .86);
+      font-size: 14px;
+      font-weight: 650;
+      margin: 0 0 10px 0;
+      letter-spacing: .01em;
+    }
+
+    .statV{
+      margin:0;
+      font-size: 22px;
+      font-weight: 850;
+      letter-spacing: .02em;
+      color: rgba(234,240,251,.92);
+      word-break: break-word;
+    }
+
+    .formula{
+      margin-top: 14px;
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      border-radius: 999px;
+      padding: 12px 14px;
+      background:
+        linear-gradient(180deg, rgba(0,0,0,.22), rgba(0,0,0,.30));
+      border: 1px solid rgba(255,255,255,.14);
+      color: rgba(190, 205, 224, .86);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+      font-size: 14px;
+      overflow:hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .arrow{
+      color: rgba(120, 255, 140, .90);
+      font-weight: 900;
+      font-size: 18px;
+      transform: translateY(-1px);
+      text-shadow: 0 0 12px rgba(120,255,140,.18);
+    }
+
+    .pulse{
+      animation: pulse var(--med) var(--ease);
+    }
+    @keyframes pulse{
+      0%{transform: translateY(0); filter: brightness(1)}
+      40%{transform: translateY(-1px); filter: brightness(1.10)}
+      100%{transform: translateY(0); filter: brightness(1)}
+    }
+
+    /* Improve downscaled icon sharpness on some browsers */
+    @supports (image-rendering: -webkit-optimize-contrast){
+      .ico, .inIconL, .inIconR, .resIcon{ image-rendering: -webkit-optimize-contrast; }
+    }
+
+    /* Split-flap animation overlay (bones + rods) */
+    .resValue{ position: relative; }
+    .resValue.flapAnimating{ color: transparent; }
+
+    .flapOverlay{
+      position:absolute;
+      left:0;
+      top:0;
+      height:100%;
+      display:inline-flex;
+      align-items:flex-start;
+      pointer-events:none;
+      white-space: pre;
+      font: inherit;
+      letter-spacing: inherit;
+      color: var(--text);
+      z-index: 2;
+    }
+
+    .flapDigit{
+      position: relative;
+      width: 1ch;
+      height: 1.12em;
+      perspective: 900px;
+    }
+
+    .flapDigit .layer{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      backface-visibility: hidden;
+      transform-style: preserve-3d;
+    }
+
+    .flapDigit .layer.top{ clip-path: inset(0 0 50% 0); transform-origin: 50% 50%; }
+    .flapDigit .layer.bottom{ clip-path: inset(50% 0 0 0); transform-origin: 50% 50%; }
+
+    .flapDigit .layer.static{ z-index: 1; }
+    .flapDigit .layer.flip{ z-index: 2; }
+    .flapDigit .layer.flip.bottom{ transform: rotateX(90deg); }
+
+    .flapDigit.play .layer.flip.top{
+      animation: flapTop var(--flapDur) var(--ease) var(--d) both;
+    }
+    .flapDigit.play .layer.flip.bottom{
+      animation: flapBottom var(--flapDur) var(--ease) calc(var(--d) + var(--flapDur)) both;
+    }
+
+    .flapDigit.play::after{
+      content:"";
+      position:absolute;
+      left:0;
+      right:0;
+      top:50%;
+      height:1px;
+      background: rgba(255,255,255,.12);
+      opacity:.35;
+      transform: translateY(-0.5px);
+    }
+
+    @keyframes flapTop{ to{ transform: rotateX(-90deg); } }
+    @keyframes flapBottom{ to{ transform: rotateX(0deg); } }
+
+    .credits{
+      position: relative;
+      z-index: 1;
+      margin: 18px auto 0 auto;
+      text-align:center;
+      color: rgba(190, 205, 224, .62);
+      font-size: 12.5px;
+      letter-spacing: .02em;
+      padding-bottom: 8px;
+    }
+
+
+    @media (prefers-reduced-motion: reduce){
+      *{animation:none !important; transition:none !important}
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <!-- LEFT -->
+    <section class="pane left">
+      <div class="titleRow">
+        <div class="titleIcons" aria-hidden="true">
+          <img class="ico money" id="iconMoneyA" alt="" />
+          <img class="ico" id="iconBoneA" alt="" />
+        </div>
+        <h1>Ratio Buyer</h1>
+      </div>
+
+      <p class="desc">
+        Maximizes items (and matching bones) within a budget. Items are computed as:
+        <span class="mono">bones = floor(multiplier × rods)</span>,
+        then rounded down to the nearest rounding step.
+      </p>
+
+      <div class="inner">
+        <div class="sectionHdr">INPUTS</div>
+
+        <div class="form">
+          <div class="field">
+            <label for="budget">Budget</label>
+            <div class="inputWrap budget">
+              <img class="inIconL" id="iconMoneyB" alt="" aria-hidden="true" />
+              <input id="budget" inputmode="decimal" value="800M" />
+            </div>
+            <div class="hint">
+              Suffixes: <strong>k</strong>=1,000 · <strong>m</strong>=1,000,000 · <strong>b</strong>=1,000,000,000
+              (accepts “.” or “:” decimals).
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label for="rodPrice">Rod price (each)</label>
+              <div class="inputWrap">
+                <input id="rodPrice" inputmode="decimal" value="171:1" />
+                <img class="inIconR" id="iconRodA" alt="" aria-hidden="true" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="bonePrice">Bone price (each)</label>
+              <div class="inputWrap">
+                <input id="bonePrice" inputmode="decimal" value="158:1" />
+                <img class="inIconR" id="iconBoneB" alt="" aria-hidden="true" />
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="multiplier">Multiplier <span style="color:rgba(190,205,224,.68);font-size:12px;">(bones per rod)</span></label>
+            <div class="inputWrap">
+              <input id="multiplier" inputmode="decimal" value="3.8" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label for="rodRoundStep">Rod rounding <span style="color:rgba(190,205,224,.68);font-size:12px;">(down to nearest stack)</span></label>
+              <div class="inputWrap">
+                <input id="rodRoundStep" inputmode="text" value="1" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="roundStep">Bone rounding <span style="color:rgba(190,205,224,.68);font-size:12px;">(down to nearest stack)</span></label>
+              <div class="inputWrap">
+                <input id="roundStep" inputmode="text" value="100000" />
+              </div>
+            </div>
+          </div>
+
+          <div class="examples">
+            <div>Example: 3.8 means 3.8 bones per 1 blaze rod.</div>
+            <div>Example: 100k bones at 3.8 → 26,316 rods (1,316 extra rods vs 4.0).</div>
+            <div>To make them exactly equal, use a multiplier of 4.</div>
+          </div>
+
+          <button class="btn" id="calcBtn" type="button">Calculate</button>
+
+          <div id="err" class="err"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT -->
+    <section class="pane right">
+      <div class="sectionHdr">RESULT</div>
+
+      <div class="resultTop">
+        <div class="resItem">
+          <img class="resIcon" id="iconBoneC" alt="" aria-hidden="true" />
+          <div>
+            <div class="resLabel">Bones to buy</div>
+            <div class="resValue" id="outBones">—</div>
+          </div>
+        </div>
+
+        <div class="resItem">
+          <img class="resIcon" id="iconRodB" alt="" aria-hidden="true" />
+          <div>
+            <div class="resLabel">Blaze rods to buy</div>
+            <div class="resValue" id="outRods">—</div>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <p class="statT">Total spent</p>
+            <p class="statV" id="outSpent">$—</p>
+          </div>
+
+          <div class="stat">
+            <p class="statT">Remaining</p>
+            <p class="statV" id="outRemain">—</p>
+          </div>
+
+          <div class="stat">
+            <p class="statT">Raw bones (before rounding)</p>
+            <p class="statV" id="outRawBones">—</p>
+          </div>
+
+          <div class="stat">
+            <p class="statT">Effective bone/rod</p>
+            <p class="statV" id="outEffRatio">—</p>
+          </div>
+        </div>
+
+        <div class="formula" title="Formula used">
+          <span class="arrow">➜</span>
+          <span id="outNote">bones = floor(multiplier × rods), then rounded down to the nearest</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="credits">made by snegly and v11</div>
+
+<script>
+(() => {
+  // Your icon URLs
+  const ICON_URLS = {
+    rod: "https://i.postimg.cc/BPJ3L2pw/blaze.png",
+    bone: "https://i.postimg.cc/9wc2Ryb8/bone.png",
+    money: "https://i.postimg.cc/BPJ3L2p7/money.png",
+  };
+
+  // Assign icons
+  const setSrc = (id, url) => { const el = document.getElementById(id); if (el) el.src = url; };
+  setSrc("iconMoneyA", ICON_URLS.money);
+  setSrc("iconMoneyB", ICON_URLS.money);
+  setSrc("iconRodA", ICON_URLS.rod);
+  setSrc("iconRodB", ICON_URLS.rod);
+  setSrc("iconBoneA", ICON_URLS.bone);
+  setSrc("iconBoneB", ICON_URLS.bone);
+  setSrc("iconBoneC", ICON_URLS.bone);
+
+  const SCALE = 10000n; // 4 decimals of precision for money math
+
+  const $ = (id) => document.getElementById(id);
+
+  const els = {
+    budget: $("budget"),
+    bonePrice: $("bonePrice"),
+    rodPrice: $("rodPrice"),
+    multiplier: $("multiplier"),
+    rodRoundStep: $("rodRoundStep"),
+    roundStep: $("roundStep"),
+    calcBtn: $("calcBtn"),
+    err: $("err"),
+    outRods: $("outRods"),
+    outBones: $("outBones"),
+    outSpent: $("outSpent"),
+    outRemain: $("outRemain"),
+    outRawBones: $("outRawBones"),
+    outEffRatio: $("outEffRatio"),
+    outNote: $("outNote"),
+  };
+
+  const prefersReducedMotion = () =>
+    !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+  function pulse(el){
+    if (!el) return;
+    el.classList.remove("pulse");
+    void el.offsetWidth;
+    el.classList.add("pulse");
+  }
+
+  function showErr(msg){
+    els.err.textContent = msg;
+    els.err.style.display = "block";
+  }
+  function clearErr(){
+    els.err.textContent = "";
+    els.err.style.display = "none";
+  }
+
+  function stripSeparators(s){
+    return s.replace(/[, _]/g, "");
+  }
+
+  function normalizeNumberString(input){
+    // Allow ":" as decimal separator (e.g., 171:1), allow leading "." too.
+    let s = String(input ?? "").trim();
+    s = s.replace(/^[^\d.:]+/g, ""); // strip leading currency/symbols (keep leading '.' / ':')
+    s = stripSeparators(s);
+    s = s.replace(/:/g, ".");
+    return s;
+  }
+
+  function extractSuffixFactor(s){
+    let factor = 1n;
+    const last = s.slice(-1).toLowerCase();
+    if (last === "k") { factor = 1000n; s = s.slice(0, -1); }
+    else if (last === "m") { factor = 1000000n; s = s.slice(0, -1); }
+    else if (last === "b") { factor = 1000000000n; s = s.slice(0, -1); }
+    return { s, factor };
+  }
+
+  function ensureLeadingZero(s){
+    return s.startsWith(".") ? ("0" + s) : s;
+  }
+
+  // Supports suffix: k, m, b (case-insensitive). Supports "." or ":" decimals.
+  function parseScaledAmount(input){
+    let s = normalizeNumberString(input);
+    if (!s) return null;
+
+    let { s: core, factor } = extractSuffixFactor(s);
+    core = core.trim();
+    if (!core) return null;
+
+    core = ensureLeadingZero(core);
+
+    if (!/^\d+(\.\d+)?$/.test(core)) return null;
+
+    const parts = core.split(".");
+    const intPart = parts[0] || "0";
+    const fracPart = (parts[1] || "");
+
+    // floor to 4 decimal places (no rounding up)
+    const frac4 = (fracPart + "0000").slice(0, 4);
+    const scaled = (BigInt(intPart) * SCALE) + BigInt(frac4);
+    return scaled * factor;
+  }
+
+  function gcd(a,b){
+    a = a < 0n ? -a : a;
+    b = b < 0n ? -b : b;
+    while (b !== 0n){
+      const t = a % b;
+      a = b;
+      b = t;
+    }
+    return a;
+  }
+
+  // Supports: decimals, fractions, and suffixes (k/m/b).
+  function parseMultiplierFraction(input){
+    let s = normalizeNumberString(input);
+    if (!s) return null;
+
+    let { s: core, factor } = extractSuffixFactor(s);
+    core = core.trim();
+    if (!core) return null;
+
+    if (core.includes("/")){
+      const [a,b] = core.split("/").map(x => x.trim());
+      if (!/^\d+$/.test(a) || !/^\d+$/.test(b)) return null;
+      let num = BigInt(a) * factor;
+      let den = BigInt(b);
+      if (den === 0n) return null;
+      const g = gcd(num, den);
+      num /= g; den /= g;
+      return { num, den };
+    }
+
+    core = ensureLeadingZero(core);
+    if (!/^\d+(\.\d+)?$/.test(core)) return null;
+
+    if (!core.includes(".")){
+      let num = BigInt(core) * factor;
+      let den = 1n;
+      const g = gcd(num, den);
+      num /= g;
+      return { num, den: den / g };
+    }
+
+    const [whole, frac] = core.split(".");
+    const digits = (whole || "0") + (frac || "");
+    const den0 = 10n ** BigInt((frac || "").length);
+    let num = BigInt(digits || "0") * factor;
+    let den = den0;
+    const g = gcd(num, den);
+    num /= g; den /= g;
+    return { num, den };
+  }
+
+  function parseStepInt(input){
+    const scaled = parseScaledAmount(input);
+    if (scaled === null) return null;
+    return scaled / SCALE; // floor to integer
+  }
+
+  function fmtInt(n){
+    let s = n.toString();
+    const neg = s.startsWith("-");
+    if (neg) s = s.slice(1);
+    const out = s.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return neg ? "-" + out : out;
+  }
+
+  // Money formatting to 2 decimals (floored)
+  function fmtMoney2(nScaled, withDollar){
+    const neg = nScaled < 0n;
+    let x = neg ? -nScaled : nScaled;
+
+    const intPart = x / SCALE;
+    const frac4 = x % SCALE;
+    const cents = frac4 / 100n; // floor to 2 decimals
+
+    const s = `${fmtInt(intPart)}.${cents.toString().padStart(2, "0")}`;
+    const pref = withDollar ? "$" : "";
+    return (neg ? "-" : "") + pref + s;
+  }
+
+  function fmtRatio6(num, den){
+    if (den === 0n) return "0.000000";
+    const scale = 1000000n;
+    const scaled = (num * scale) / den; // floor
+    const intPart = scaled / scale;
+    const fracPart = scaled % scale;
+    return `${fmtInt(intPart)}.${fracPart.toString().padStart(6, "0")}`;
+  }
+
+  function computeMaxRods({budgetS, bonePriceS, rodPriceS, mult, boneRoundStep, rodRoundStep}){
+    const rodStep = (rodRoundStep && rodRoundStep > 0n) ? rodRoundStep : 1n;
+
+    // Max rods ignoring bones
+    const hiRods = budgetS / rodPriceS;
+
+    // Binary search over "rodStep blocks"
+    let hi = hiRods / rodStep;
+    let lo = 0n;
+
+    function bonesForR(r){
+      const raw = (r * mult.num) / mult.den; // floor
+      if (boneRoundStep <= 1n) return { raw, rounded: raw };
+      const rounded = (raw / boneRoundStep) * boneRoundStep; // floor to step
+      return { raw, rounded };
+    }
+
+    function costForR(r){
+      const b = bonesForR(r);
+      const cost = (r * rodPriceS) + (b.rounded * bonePriceS);
+      return { cost, bonesRaw: b.raw, bones: b.rounded };
+    }
+
+    while (lo < hi){
+      const mid = (lo + hi + 1n) / 2n;
+      const r = mid * rodStep;
+      const { cost } = costForR(r);
+      if (cost <= budgetS) lo = mid;
+      else hi = mid - 1n;
+    }
+
+    const rods = lo * rodStep;
+    const { cost, bonesRaw, bones } = costForR(rods);
+    const remain = budgetS - cost;
+    return { rods, bonesRaw, bones, spent: cost, remain, rodStep };
+  }
+
+  // Split-flap overlay animation (keeps final formatting identical)
+  const flapActive = new WeakMap();
+  const FLAP_DUR_MS = 220;     // each half
+  const FLAP_STAGGER_MS = 18;  // per character (right-to-left)
+
+  function makeLayer(cls, ch){
+    const layer = document.createElement("span");
+    layer.className = "layer " + cls;
+    layer.textContent = (ch === " " ? "\u00A0" : ch);
+    return layer;
+  }
+
+  function setFlapText(el, nextText, animate){
+    if (!el) return;
+
+    const newText = String(nextText ?? "");
+    const oldText = el.dataset.plain ?? el.textContent ?? "";
+
+    if (oldText === newText) return;
+
+    // Cancel any in-flight animation
+    const prev = flapActive.get(el);
+    if (prev){
+      clearTimeout(prev.t);
+      if (prev.overlay && prev.overlay.parentNode) prev.overlay.remove();
+      el.classList.remove("flapAnimating");
+      flapActive.delete(el);
+    }
+
+    if (!animate || prefersReducedMotion()){
+      el.textContent = newText;
+      el.dataset.plain = newText;
+      el.setAttribute("aria-label", newText);
+      return;
+    }
+
+    const overlay = document.createElement("span");
+    overlay.className = "flapOverlay";
+    overlay.style.setProperty("--flapDur", `${FLAP_DUR_MS}ms`);
+
+    const a = [...oldText];
+    const b = [...newText];
+    const len = Math.max(a.length, b.length); // left-aligned to avoid "jump" at animation start
+
+    for (let i = 0; i < len; i++){
+      const oldC = a[i] ?? " ";
+      const newC = b[i] ?? " ";
+
+      const digit = document.createElement("span");
+      digit.className = "flapDigit";
+
+      // Stagger from right-to-left (airport boards/odometer vibe)
+      digit.style.setProperty("--d", `${(len - 1 - i) * FLAP_STAGGER_MS}ms`);
+
+      // Static layers: top = new, bottom = old (so start shows old, end shows new)
+      digit.appendChild(makeLayer("top static", newC));
+      digit.appendChild(makeLayer("bottom static", oldC));
+
+      if (oldC !== newC){
+        digit.classList.add("play");
+        digit.appendChild(makeLayer("top flip", oldC));
+        digit.appendChild(makeLayer("bottom flip", newC));
+      }
+
+      overlay.appendChild(digit);
+    }
+
+    el.appendChild(overlay);
+    el.classList.add("flapAnimating");
+    el.setAttribute("aria-label", newText);
+
+    const total = (FLAP_DUR_MS * 2) + (FLAP_STAGGER_MS * Math.max(0, len - 1)) + 60;
+    const t = setTimeout(() => {
+      if (overlay.parentNode) overlay.remove();
+      el.classList.remove("flapAnimating");
+      el.textContent = newText;
+      el.dataset.plain = newText;
+      flapActive.delete(el);
+    }, total);
+
+    flapActive.set(el, { overlay, t });
+  }
+
+  // Debounced calculate while typing
+  const INPUT_IDLE_MS = 2000;
+  let calcTimer = null;
+
+  function scheduleCalculate(){
+    if (calcTimer) clearTimeout(calcTimer);
+    calcTimer = setTimeout(() => {
+      calcTimer = null;
+      calculate({ animateFlap: true, animatePulse: true });
+    }, INPUT_IDLE_MS);
+  }
+
+  function calculate(opts = {}){
+    const { animateFlap = true, animatePulse = true } = opts;
+
+    clearErr();
+
+    const budgetS = parseScaledAmount(els.budget.value);
+    const bonePriceS = parseScaledAmount(els.bonePrice.value);
+    const rodPriceS = parseScaledAmount(els.rodPrice.value);
+    const mult = parseMultiplierFraction(els.multiplier.value);
+
+    // Bone rounding (supports suffixes)
+    let boneStep;
+    const boneRaw = normalizeNumberString(els.roundStep.value);
+    if (!boneRaw) boneStep = 100000n;
+    else boneStep = parseStepInt(els.roundStep.value);
+
+    // Rod rounding (supports suffixes)
+    let rodStep;
+    const rodRaw = normalizeNumberString(els.rodRoundStep.value);
+    if (!rodRaw) rodStep = 1n;
+    else rodStep = parseStepInt(els.rodRoundStep.value);
+
+    if (budgetS === null) { showErr("Invalid budget. Examples: 800M, 0.5b, 220000000"); return; }
+    if (bonePriceS === null || bonePriceS <= 0n) { showErr("Invalid bone price."); return; }
+    if (rodPriceS === null || rodPriceS <= 0n) { showErr("Invalid rod price."); return; }
+    if (mult === null) { showErr("Invalid multiplier. Example: 3.8"); return; }
+
+    if (boneStep === null) { showErr("Invalid bone rounding. Examples: 100000, 100k, 0 (no rounding)."); return; }
+    if (rodStep === null) { showErr("Invalid rod rounding. Examples: 64, 1k, 0 (no rounding)."); return; }
+
+    // Normalize steps
+    if (rodStep <= 1n) rodStep = 1n; // avoid divide by zero + keep meaning "no rounding"
+    // boneStep can be 0/1 => treated as no rounding
+
+    try{
+      localStorage.setItem("rb_budget", els.budget.value);
+      localStorage.setItem("rb_bonePrice", els.bonePrice.value);
+      localStorage.setItem("rb_rodPrice", els.rodPrice.value);
+      localStorage.setItem("rb_multiplier", els.multiplier.value);
+      localStorage.setItem("rb_roundStep", els.roundStep.value);
+      localStorage.setItem("rb_rodRoundStep", els.rodRoundStep.value);
+    }catch(_){}
+
+    const res = computeMaxRods({
+      budgetS,
+      bonePriceS,
+      rodPriceS,
+      mult,
+      boneRoundStep: boneStep,
+      rodRoundStep: rodStep,
+    });
+
+    setFlapText(els.outRods, fmtInt(res.rods), animateFlap);
+    setFlapText(els.outBones, fmtInt(res.bones), animateFlap);
+
+    // Match the screenshot styling: Total spent has "$", Remaining no "$"
+    els.outSpent.textContent = fmtMoney2(res.spent, true);
+    els.outRemain.textContent = fmtMoney2(res.remain, false);
+
+    els.outRawBones.textContent = fmtInt(res.bonesRaw);
+    els.outEffRatio.textContent = (res.rods > 0n) ? fmtRatio6(res.bones, res.rods) : "0.000000";
+
+    const boneStepLabel =
+      (boneStep <= 1n) ? "no bone rounding" : `bones rounded down to the nearest ${fmtInt(boneStep)}`;
+    const rodStepLabel =
+      (rodStep <= 1n) ? "no rod rounding" : `rods rounded down to the nearest ${fmtInt(rodStep)}`;
+
+    els.outNote.textContent = `bones = floor(multiplier × rods), then ${boneStepLabel}; ${rodStepLabel}`;
+
+    if (animatePulse){
+      pulse(els.outSpent);
+      pulse(els.outRemain);
+      pulse(els.outRawBones);
+      pulse(els.outEffRatio);
+    }
+  }
+
+  function loadDefaults(){
+    try{
+      const b = localStorage.getItem("rb_budget");
+      const bp = localStorage.getItem("rb_bonePrice");
+      const rp = localStorage.getItem("rb_rodPrice");
+      const m = localStorage.getItem("rb_multiplier");
+      const rs = localStorage.getItem("rb_roundStep");
+      const rrs = localStorage.getItem("rb_rodRoundStep");
+      if (b) els.budget.value = b;
+      if (bp) els.bonePrice.value = bp;
+      if (rp) els.rodPrice.value = rp;
+      if (m) els.multiplier.value = m;
+      if (rs) els.roundStep.value = rs;
+      if (rrs) els.rodRoundStep.value = rrs;
+    }catch(_){}
+  }
+
+  // Events
+  els.calcBtn.addEventListener("click", () => {
+    if (calcTimer) { clearTimeout(calcTimer); calcTimer = null; }
+    calculate({ animateFlap: true, animatePulse: true });
+  });
+
+  [els.budget, els.bonePrice, els.rodPrice, els.multiplier, els.roundStep, els.rodRoundStep].forEach((el) => {
+    el.addEventListener("input", scheduleCalculate);
+    el.addEventListener("change", () => calculate({ animateFlap: true, animatePulse: true }));
+  });
+
+  loadDefaults();
+  calculate({ animateFlap: false, animatePulse: false });
+})();
+</script>
+</body>
+</html>
