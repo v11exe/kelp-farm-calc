@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Ratio Buyer</title>
+  <title>Kelp Farm Calc</title>
+  <link rel="icon" type="image/png" href="https://i.postimg.cc/qMZhM4nm/image.png">
 
   <!-- Split-flap display (HotFX) -->
   <script type="module" src="https://cdn.jsdelivr.net/npm/@hot-page/hotfx-split-flap@0.0.1"></script>
@@ -159,16 +160,26 @@
       width: min(1760px, 100%);
       margin: 0 auto;
       display:grid;
-      grid-template-columns: 1fr 1fr;
+      /*
+        Responsive columns that don't let RESULT's min-content force INPUTS
+        to become skinny. Auto-stacks when there isn't room.
+      */
+      grid-template-columns: repeat(auto-fit, minmax(min(540px, 100%), 1fr));
       gap: 22px;
       z-index: 2;
       align-items: stretch;
-      min-height: 0;
+      align-content: stretch;
       transition: opacity 420ms var(--ease), transform 420ms var(--ease);
     }
 
-    @media (max-width: 1100px){
-      .app{grid-template-columns: 1fr}
+    /*
+      JS toggles html.stacked when the grid collapses to a single column.
+      In stacked mode, let the grid size to content so rows don't get
+      stretched/squeezed into the viewport height.
+    */
+    html.stacked .app{
+      flex: 0 0 auto;
+      align-content: start;
     }
 
     /* Boot staging */
@@ -194,6 +205,7 @@
       transition: transform var(--med) var(--ease);
       display:flex;
       flex-direction:column;
+      min-width: 0;
       min-height: 0;
     }
     .pane:hover{ transform: translateY(-1px); }
@@ -303,6 +315,7 @@
       display:flex;
       flex-direction:column;
       flex: 1 1 auto;
+      min-width: 0;
       min-height: 0;
     }
 
@@ -412,7 +425,7 @@
       grid-template-columns: 1fr 1fr;
       gap: 12px;
     }
-    @media (max-width: 560px){
+    @media (max-width: 720px){
       .row{grid-template-columns: 1fr}
     }
 
@@ -693,7 +706,7 @@
       grid-template-columns: 1fr 1fr;
       gap: 12px;
     }
-    @media (max-width: 560px){
+    @media (max-width: 720px){
       .stats{grid-template-columns: 1fr}
     }
 
@@ -739,7 +752,8 @@
     .formula{
       margin-top: auto;
       display:flex;
-      align-items:center;
+      /* allow the formula text to wrap cleanly on narrow widths */
+      align-items: baseline;
       gap: 10px;
       border-radius: 999px;
       padding: 12px 14px;
@@ -750,8 +764,15 @@
       box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
       font-size: 14px;
       overflow:hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
+      white-space: normal;
+    }
+
+    .formula #outNote{
+      min-width: 0;
+      flex: 1 1 auto;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      line-height: 1.35;
     }
 
     .arrow{
@@ -989,6 +1010,21 @@
   const prefersReducedMotion = () =>
     !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
+  // Detect when the CSS grid collapses to a single column so we can switch
+  // to a content-sized layout (prevents the stacked panes from being
+  // stretched/squeezed into the viewport height).
+  const appEl = document.querySelector(".app");
+  function syncStackClass(){
+    if (!appEl) return;
+    const cols = (getComputedStyle(appEl).gridTemplateColumns || "")
+      .split(" ")
+      .filter(Boolean)
+      .length;
+    document.documentElement.classList.toggle("stacked", cols <= 1);
+  }
+  syncStackClass();
+  window.addEventListener("resize", () => requestAnimationFrame(syncStackClass));
+
   // Boot sequence: loading bar -> flare ring -> reveal background + contents
   function setBootState(state){
     document.documentElement.classList.remove("boot0","boot1","boot2");
@@ -1116,6 +1152,8 @@
       setBootState("boot2");
       return;
     }
+    // Ensure the correct layout mode before measuring pane sizes for the ring.
+    syncStackClass();
     // Prepare ring paths while layout is stable (still boot0).
     setupBootRings();
 
@@ -1536,3 +1574,4 @@
 </script>
 </body>
 </html>
+
