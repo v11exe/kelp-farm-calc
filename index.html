@@ -1,14 +1,18 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="boot0">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Ratio Buyer</title>
 
+  <!-- Split-flap display (HotFX) -->
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@hot-page/hotfx-split-flap@0.0.1"></script>
+
   <style>
     /*
       Put CascadiaCode-Regular.ttf next to this HTML file.
       Icons are loaded from the URLs you gave (see ICON_URLS in <script>).
+      Split-flap output uses <hotfx-split-flap> from HotFX, but commas are rendered as normal text.
     */
 
     @font-face{
@@ -56,13 +60,19 @@
 
     *{box-sizing:border-box}
     html,body{height:100%}
+
     body{
       margin:0;
+      position:relative;
+      isolation: isolate;
       font-family: "Cascadia Code Web", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
       color:var(--text);
       min-height:100vh;
-      padding: 36px 28px;
+      min-height:100svh;
+      padding: clamp(18px, 3.2vw, 36px) clamp(16px, 2.6vw, 28px);
       overflow-x:hidden;
+      display:flex;
+      flex-direction:column;
 
       background:
         radial-gradient(900px 700px at 16% 28%, rgba(255, 172, 78, .18), transparent 60%),
@@ -80,6 +90,7 @@
       pointer-events:none;
       opacity:.20;
       mix-blend-mode: overlay;
+      z-index:0;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
     }
     body::after{
@@ -87,30 +98,90 @@
       position:fixed;
       inset:-1px;
       pointer-events:none;
+      z-index:0;
       background: radial-gradient(1400px 900px at 50% 40%, rgba(0,0,0,0), rgba(0,0,0,.60));
       opacity:.75;
     }
 
+    /* Black curtain during boot -> fades to reveal the background */
+    .bgCurtain{
+      position:fixed;
+      inset:0;
+      background: #000;
+      opacity: 1;
+      pointer-events:none;
+      z-index: 1;
+      transition: opacity 900ms var(--ease);
+    }
+    html.boot2 .bgCurtain{ opacity: 0; }
+
+    /* Loading overlay */
+    .bootOverlay{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index: 4;
+      pointer-events:none;
+      transition: opacity 420ms var(--ease);
+    }
+    html.boot1 .bootOverlay,
+    html.boot2 .bootOverlay{ opacity:0; }
+
+    .bootBar{
+      width: 240px;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.10);
+      overflow:hidden;
+      box-shadow:
+        0 22px 50px rgba(0,0,0,.55),
+        inset 0 1px 0 rgba(255,255,255,.12);
+    }
+    .bootFill{
+      height:100%;
+      width:0%;
+      border-radius: inherit;
+      background:
+        linear-gradient(90deg, rgba(255,172,78,.88), rgba(106,174,255,.82));
+      box-shadow: 0 0 22px rgba(255,255,255,.14);
+      animation: bootFill 780ms var(--ease) both;
+    }
+    @keyframes bootFill{
+      from{ width: 0% }
+      to{ width: 100% }
+    }
+
     .app{
       position:relative;
-      width: 100%;
+      flex: 1 1 auto;
+      width: min(1760px, 100%);
       margin: 0 auto;
       display:grid;
-      grid-template-columns: repeat(auto-fit, minmax(520px, 1fr));
+      grid-template-columns: 1fr 1fr;
       gap: 22px;
-      z-index: 1;
-      min-height: calc(100vh - 72px);
-      align-content: stretch;
-      animation: fadeUp var(--slow) var(--ease) both;
+      z-index: 2;
+      align-items: stretch;
+      min-height: 0;
+      transition: opacity 420ms var(--ease), transform 420ms var(--ease);
     }
 
-    @keyframes fadeUp{
-      from{opacity:0; transform: translateY(10px)}
-      to{opacity:1; transform: translateY(0)}
-    }
-
-    @media (max-width: 980px){
+    @media (max-width: 1100px){
       .app{grid-template-columns: 1fr}
+    }
+
+    /* Boot staging */
+    html.boot0 .app{
+      opacity:0;
+      transform: translateY(8px);
+      pointer-events:none;
+    }
+    html.boot1 .app,
+    html.boot2 .app{
+      opacity:1;
+      transform: translateY(0);
+      pointer-events:auto;
     }
 
     .pane{
@@ -121,6 +192,9 @@
       backdrop-filter: blur(12px);
       box-shadow: var(--shadow);
       transition: transform var(--med) var(--ease);
+      display:flex;
+      flex-direction:column;
+      min-height: 0;
     }
     .pane:hover{ transform: translateY(-1px); }
 
@@ -140,6 +214,8 @@
         linear-gradient(#000 0 0);
       -webkit-mask-composite: xor;
       mask-composite: exclude;
+
+      transition: opacity 520ms var(--ease);
     }
 
     /* Outer glow */
@@ -153,15 +229,94 @@
       opacity:.55;
       pointer-events:none;
       z-index:-1;
+      transition: opacity 720ms var(--ease) 80ms;
     }
 
     .pane.left{
       --paneStroke: linear-gradient(180deg, rgba(255, 172, 78, .62), rgba(255, 172, 78, .16));
       --paneGlow: var(--rodGlow);
+      --bootAccent: rgba(255, 172, 78, .96);
+      --bootAccentSoft: rgba(255, 172, 78, .46);
     }
     .pane.right{
       --paneStroke: linear-gradient(180deg, rgba(106, 174, 255, .58), rgba(106, 174, 255, .16));
       --paneGlow: var(--boneGlow);
+      --bootAccent: rgba(106, 174, 255, .96);
+      --bootAccentSoft: rgba(106, 174, 255, .42);
+    }
+
+    /* Boot flare ring (runs once around the border) */
+    .bootRing{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      pointer-events:none;
+      opacity: 0;
+      z-index: 2;
+      border-radius: inherit;
+      filter:
+        drop-shadow(0 0 14px var(--bootAccentSoft))
+        drop-shadow(0 0 26px rgba(255,255,255,.06));
+    }
+    .bootRingPath{
+      fill:none;
+      stroke: var(--bootAccent);
+      stroke-width: 3.25;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 120 9999;
+      stroke-dashoffset: 0;
+      vector-effect: non-scaling-stroke;
+      will-change: stroke-dashoffset;
+    }
+
+    html.boot1 .bootRing{
+      opacity: 1;
+    }
+    html.boot1 .bootRingPath{
+      animation-name: var(--ringAnim);
+      animation-duration: 2000ms;
+      animation-fill-mode: both;
+      animation-timing-function: linear;
+    }
+    html.boot2 .bootRing{
+      opacity: 0;
+      transition: opacity 520ms var(--ease);
+    }
+
+    /* Hide the "normal" border+glow while the boot ring is running */
+    html.boot1 .pane::before{ opacity: 0; }
+    html.boot1 .pane::after{ opacity: 0; }
+
+    /* Fade in contents after the ring finishes */
+    .paneContent{
+      position:relative;
+      z-index: 1;
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+      transition:
+        opacity 520ms var(--ease),
+        transform 520ms var(--ease),
+        filter 520ms var(--ease);
+      display:flex;
+      flex-direction:column;
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+
+    html.boot0 .paneContent,
+    html.boot1 .paneContent{
+      opacity: 0;
+      transform: translateY(10px);
+      filter: blur(5px);
+    }
+    html.boot2 .paneContent{
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+      transition-delay: 120ms;
     }
 
     .titleRow{
@@ -198,7 +353,7 @@
 
     h1{
       margin:0;
-      font-size: 28px;
+      font-size: clamp(24px, 2.1vw, 28px);
       font-weight: 800;
       letter-spacing: .2px;
     }
@@ -221,6 +376,10 @@
         linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.14));
       border: 1px solid rgba(255,255,255,.12);
       box-shadow: var(--shadowIn);
+      display:flex;
+      flex-direction:column;
+      flex: 1 1 auto;
+      min-height: 0;
     }
 
     .sectionHdr{
@@ -233,8 +392,11 @@
     }
 
     .form{
-      display:grid;
+      display:flex;
+      flex-direction:column;
       gap: 12px;
+      flex: 1 1 auto;
+      min-height: 0;
     }
 
     .field label{
@@ -271,7 +433,7 @@
 
       padding: 12px 44px 12px 14px;
       outline:none;
-      font-size: 18px;
+      font-size: clamp(16px, 1.4vw, 18px);
       letter-spacing: .02em;
 
       transition:
@@ -348,8 +510,13 @@
       line-height: 1.35;
     }
 
+    .formActions{
+      margin-top: auto;
+      display:grid;
+      gap: 10px;
+    }
+
     .btn{
-      margin-top: 10px;
       width: 100%;
       border-radius: 14px;
       border: 1px solid rgba(158, 227, 234, .22);
@@ -357,7 +524,7 @@
         linear-gradient(180deg, rgba(110,231,255,.12), rgba(110,231,255,.05)),
         linear-gradient(180deg, rgba(10,32,36,.55), rgba(10,32,36,.78));
       color: rgba(234,240,251,.94);
-      font-size: 22px;
+      font-size: clamp(18px, 1.8vw, 22px);
       padding: 14px 14px;
       font-weight: 800;
       letter-spacing: .02em;
@@ -393,7 +560,6 @@
 
     .err{
       display:none;
-      margin-top: 10px;
       color: rgba(255, 107, 107, .95);
       font-size: 13px;
       line-height: 1.35;
@@ -402,9 +568,12 @@
     /* Right pane result layout */
     .resultTop{
       margin-top: 4px;
-      display:grid;
-      gap: 26px;
+      display:flex;
+      flex-direction:column;
+      gap: 22px;
       padding: 6px 2px 0 2px;
+      flex: 1 1 auto;
+      min-height: 0;
     }
 
     .resItem{
@@ -412,6 +581,7 @@
       align-items:flex-start;
       gap: 12px;
     }
+    .resItem > div{ min-width: 0; }
 
     .resIcon{
       width: 28px;
@@ -421,6 +591,7 @@
       opacity: .97;
       filter: drop-shadow(0 12px 18px rgba(0,0,0,.50));
       transform: translateY(8px);
+      flex: 0 0 auto;
     }
 
     .resLabel{
@@ -430,12 +601,90 @@
       margin-top: 2px;
     }
 
-    .resValue{
-      font-size: 46px;
+    /* Split-flap wrapper (digits only; commas rendered as plain text) */
+    .resValueWrap{
+      display:flex;
+      align-items:center;
+      flex-wrap:nowrap;
+      font: inherit;
+      font-size: clamp(30px, 3.2vw, 46px);
       font-weight: 900;
       letter-spacing: .02em;
       margin-top: 2px;
       line-height: 1.02;
+      max-width: 100%;
+      overflow: hidden;
+      gap: 0;
+      contain: layout paint;
+    }
+
+    .resDash{
+      display:inline-block;
+      color: rgba(234,240,251,.90);
+      text-shadow: 0 10px 16px rgba(0,0,0,.26);
+      transform: translateY(-1px);
+    }
+
+    .sfSep{
+      display:inline-block;
+      vertical-align:middle;
+      font: inherit;
+      line-height: 1;
+      padding: 0 0.16em;
+      color: rgba(234,240,251,.90);
+      text-shadow: 0 10px 16px rgba(0,0,0,.26);
+      transform: translateY(-0.02em);
+      flex: 0 0 auto;
+      user-select:none;
+    }
+
+    hotfx-split-flap.sfGroup{
+      display:inline-grid;
+      font: inherit;
+      font-size: 1em;
+      font-weight: inherit;
+      letter-spacing: inherit;
+      line-height: 1;
+      --hotfx-split-flap-grid-gap: 0.14em;
+      flex: 0 0 auto;
+      contain: content;
+    }
+
+    /* Make the flip feel slightly less jittery on some GPUs */
+    hotfx-split-flap.sfGroup::part(char){
+      border-radius: 0.26em;
+      overflow:hidden;
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.14),
+        0 0.26em 0.44em rgba(0,0,0,.20);
+      backface-visibility: hidden;
+      transform: translateZ(0);
+    }
+
+    hotfx-split-flap.sfGroup::part(flap){
+      background:
+        linear-gradient(180deg, rgba(0,0,0,.34), rgba(0,0,0,.60));
+      color: rgba(234,240,251,.96);
+      text-shadow: 0 10px 16px rgba(0,0,0,.26);
+      backface-visibility: hidden;
+      transform: translateZ(0);
+    }
+
+    hotfx-split-flap.sfGroup::part(divider){
+      background: rgba(255,255,255,.12);
+      opacity: .35;
+    }
+
+    .resValueWrap.rod hotfx-split-flap::part(flap){
+      background:
+        radial-gradient(220px 120px at 20% 12%, rgba(255,172,78,.13), transparent 62%),
+        linear-gradient(180deg, rgba(0,0,0,.34), rgba(0,0,0,.60));
+    }
+
+    .resValueWrap.bone hotfx-split-flap::part(flap){
+      background:
+        radial-gradient(220px 120px at 20% 12%, rgba(106,174,255,.12), transparent 62%),
+        linear-gradient(180deg, rgba(0,0,0,.34), rgba(0,0,0,.60));
     }
 
     .stats{
@@ -488,7 +737,7 @@
     }
 
     .formula{
-      margin-top: 14px;
+      margin-top: auto;
       display:flex;
       align-items:center;
       gap: 10px;
@@ -527,82 +776,17 @@
       .ico, .inIconL, .inIconR, .resIcon{ image-rendering: -webkit-optimize-contrast; }
     }
 
-    /* Split-flap animation overlay (bones + rods) */
-    .resValue{ position: relative; }
-    .resValue.flapAnimating{ color: transparent; }
-
-    .flapOverlay{
-      position:absolute;
-      left:0;
-      top:0;
-      height:100%;
-      display:inline-flex;
-      align-items:flex-start;
-      pointer-events:none;
-      white-space: pre;
-      font: inherit;
-      letter-spacing: inherit;
-      color: var(--text);
-      z-index: 2;
-    }
-
-    .flapDigit{
-      position: relative;
-      width: 1ch;
-      height: 1.12em;
-      perspective: 900px;
-    }
-
-    .flapDigit .layer{
-      position:absolute;
-      inset:0;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      backface-visibility: hidden;
-      transform-style: preserve-3d;
-    }
-
-    .flapDigit .layer.top{ clip-path: inset(0 0 50% 0); transform-origin: 50% 50%; }
-    .flapDigit .layer.bottom{ clip-path: inset(50% 0 0 0); transform-origin: 50% 50%; }
-
-    .flapDigit .layer.static{ z-index: 1; }
-    .flapDigit .layer.flip{ z-index: 2; }
-    .flapDigit .layer.flip.bottom{ transform: rotateX(90deg); }
-
-    .flapDigit.play .layer.flip.top{
-      animation: flapTop var(--flapDur) var(--ease) var(--d) both;
-    }
-    .flapDigit.play .layer.flip.bottom{
-      animation: flapBottom var(--flapDur) var(--ease) calc(var(--d) + var(--flapDur)) both;
-    }
-
-    .flapDigit.play::after{
-      content:"";
-      position:absolute;
-      left:0;
-      right:0;
-      top:50%;
-      height:1px;
-      background: rgba(255,255,255,.12);
-      opacity:.35;
-      transform: translateY(-0.5px);
-    }
-
-    @keyframes flapTop{ to{ transform: rotateX(-90deg); } }
-    @keyframes flapBottom{ to{ transform: rotateX(0deg); } }
-
     .credits{
       position: relative;
-      z-index: 1;
+      z-index: 2;
       margin: 18px auto 0 auto;
       text-align:center;
       color: rgba(190, 205, 224, .62);
       font-size: 12.5px;
       letter-spacing: .02em;
       padding-bottom: 8px;
+      flex: 0 0 auto;
     }
-
 
     @media (prefers-reduced-motion: reduce){
       *{animation:none !important; transition:none !important}
@@ -611,139 +795,158 @@
 </head>
 
 <body>
+  <div class="bgCurtain" aria-hidden="true"></div>
+
+  <div class="bootOverlay" aria-hidden="true">
+    <div class="bootBar"><div class="bootFill"></div></div>
+  </div>
+
   <main class="app">
     <!-- LEFT -->
     <section class="pane left">
-      <div class="titleRow">
-        <div class="titleIcons" aria-hidden="true">
-          <img class="ico money" id="iconMoneyA" alt="" />
-          <img class="ico" id="iconBoneA" alt="" />
+      <svg class="bootRing" aria-hidden="true" focusable="false">
+        <path class="bootRingPath"></path>
+      </svg>
+
+      <div class="paneContent">
+        <div class="titleRow">
+          <div class="titleIcons" aria-hidden="true">
+            <img class="ico money" id="iconMoneyA" alt="" />
+            <img class="ico" id="iconBoneA" alt="" />
+          </div>
+          <h1>Ratio Buyer</h1>
         </div>
-        <h1>Ratio Buyer</h1>
-      </div>
 
-      <p class="desc">
-        Maximizes items (and matching bones) within a budget. Items are computed as:
-        <span class="mono">bones = floor(multiplier × rods)</span>,
-        then rounded down to the nearest rounding step.
-      </p>
+        <p class="desc">
+          Maximizes items (and matching bones) within a budget. Items are computed as:
+          <span class="mono">bones = floor(multiplier × rods)</span>,
+          then rounded down to the nearest rounding step.
+        </p>
 
-      <div class="inner">
-        <div class="sectionHdr">INPUTS</div>
+        <div class="inner">
+          <div class="sectionHdr">INPUTS</div>
 
-        <div class="form">
-          <div class="field">
-            <label for="budget">Budget</label>
-            <div class="inputWrap budget">
-              <img class="inIconL" id="iconMoneyB" alt="" aria-hidden="true" />
-              <input id="budget" inputmode="decimal" value="800M" />
-            </div>
-            <div class="hint">
-              Suffixes: <strong>k</strong>=1,000 · <strong>m</strong>=1,000,000 · <strong>b</strong>=1,000,000,000
-              (accepts “.” or “:” decimals).
-            </div>
-          </div>
-
-          <div class="row">
+          <div class="form">
             <div class="field">
-              <label for="rodPrice">Rod price (each)</label>
-              <div class="inputWrap">
-                <input id="rodPrice" inputmode="decimal" value="171:1" />
-                <img class="inIconR" id="iconRodA" alt="" aria-hidden="true" />
+              <label for="budget">Budget</label>
+              <div class="inputWrap budget">
+                <img class="inIconL" id="iconMoneyB" alt="" aria-hidden="true" />
+                <input id="budget" inputmode="decimal" value="800M" />
+              </div>
+              <div class="hint">
+                Suffixes: <strong>k</strong>=1,000 · <strong>m</strong>=1,000,000 · <strong>b</strong>=1,000,000,000
+                (accepts “.” or “:” decimals).
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="field">
+                <label for="rodPrice">Rod price (each)</label>
+                <div class="inputWrap">
+                  <input id="rodPrice" inputmode="decimal" value="171:1" />
+                  <img class="inIconR" id="iconRodA" alt="" aria-hidden="true" />
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="bonePrice">Bone price (each)</label>
+                <div class="inputWrap">
+                  <input id="bonePrice" inputmode="decimal" value="158:1" />
+                  <img class="inIconR" id="iconBoneB" alt="" aria-hidden="true" />
+                </div>
               </div>
             </div>
 
             <div class="field">
-              <label for="bonePrice">Bone price (each)</label>
+              <label for="multiplier">Multiplier <span style="color:rgba(190,205,224,.68);font-size:12px;">(bones per rod)</span></label>
               <div class="inputWrap">
-                <input id="bonePrice" inputmode="decimal" value="158:1" />
-                <img class="inIconR" id="iconBoneB" alt="" aria-hidden="true" />
+                <input id="multiplier" inputmode="decimal" value="3.8" />
               </div>
-            </div>
-          </div>
 
-          <div class="field">
-            <label for="multiplier">Multiplier <span style="color:rgba(190,205,224,.68);font-size:12px;">(bones per rod)</span></label>
-            <div class="inputWrap">
-              <input id="multiplier" inputmode="decimal" value="3.8" />
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="field">
-              <label for="rodRoundStep">Rod rounding <span style="color:rgba(190,205,224,.68);font-size:12px;">(down to nearest stack)</span></label>
-              <div class="inputWrap">
-                <input id="rodRoundStep" inputmode="text" value="1" />
+              <div class="examples">
+                <div>Example: 3.8 means 3.8 bones per 1 blaze rod.</div>
+                <div>Example: 100k bones at 3.8 → 26,315 rods (1,315 extra rods vs 4.0).</div>
+                <div>To make them exactly equal, use a multiplier of 4.</div>
               </div>
             </div>
 
-            <div class="field">
-              <label for="roundStep">Bone rounding <span style="color:rgba(190,205,224,.68);font-size:12px;">(down to nearest stack)</span></label>
-              <div class="inputWrap">
-                <input id="roundStep" inputmode="text" value="100000" />
+            <div class="row">
+              <div class="field">
+                <label for="rodRoundStep">Rod rounding <span style="color:rgba(190,205,224,.68);font-size:12px;">(down to nearest stack)</span></label>
+                <div class="inputWrap">
+                  <input id="rodRoundStep" inputmode="text" value="1" />
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="roundStep">Bone rounding <span style="color:rgba(190,205,224,.68);font-size:12px;">(down to nearest stack)</span></label>
+                <div class="inputWrap">
+                  <input id="roundStep" inputmode="text" value="100000" />
+                </div>
               </div>
             </div>
+
+            <div class="formActions">
+              <button class="btn" id="calcBtn" type="button">Calculate</button>
+              <div id="err" class="err"></div>
+            </div>
           </div>
-
-          <div class="examples">
-            <div>Example: 3.8 means 3.8 bones per 1 blaze rod.</div>
-            <div>Example: 100k bones at 3.8 → 26,316 rods (1,316 extra rods vs 4.0).</div>
-            <div>To make them exactly equal, use a multiplier of 4.</div>
-          </div>
-
-          <button class="btn" id="calcBtn" type="button">Calculate</button>
-
-          <div id="err" class="err"></div>
         </div>
       </div>
     </section>
 
     <!-- RIGHT -->
     <section class="pane right">
-      <div class="sectionHdr">RESULT</div>
+      <svg class="bootRing" aria-hidden="true" focusable="false">
+        <path class="bootRingPath"></path>
+      </svg>
 
-      <div class="resultTop">
-        <div class="resItem">
-          <img class="resIcon" id="iconBoneC" alt="" aria-hidden="true" />
-          <div>
-            <div class="resLabel">Bones to buy</div>
-            <div class="resValue" id="outBones">—</div>
-          </div>
-        </div>
+      <div class="paneContent">
+        <div class="sectionHdr">RESULT</div>
 
-        <div class="resItem">
-          <img class="resIcon" id="iconRodB" alt="" aria-hidden="true" />
-          <div>
-            <div class="resLabel">Blaze rods to buy</div>
-            <div class="resValue" id="outRods">—</div>
-          </div>
-        </div>
-
-        <div class="stats">
-          <div class="stat">
-            <p class="statT">Total spent</p>
-            <p class="statV" id="outSpent">$—</p>
+        <div class="resultTop">
+          <div class="resItem">
+            <img class="resIcon" id="iconBoneC" alt="" aria-hidden="true" />
+            <div>
+              <div class="resLabel">Bones to buy</div>
+              <div id="outBones" class="resValueWrap bone" aria-label="—"><span class="resDash">—</span></div>
+            </div>
           </div>
 
-          <div class="stat">
-            <p class="statT">Remaining</p>
-            <p class="statV" id="outRemain">—</p>
+          <div class="resItem">
+            <img class="resIcon" id="iconRodB" alt="" aria-hidden="true" />
+            <div>
+              <div class="resLabel">Blaze rods to buy</div>
+              <div id="outRods" class="resValueWrap rod" aria-label="—"><span class="resDash">—</span></div>
+            </div>
           </div>
 
-          <div class="stat">
-            <p class="statT">Raw bones (before rounding)</p>
-            <p class="statV" id="outRawBones">—</p>
+          <div class="stats">
+            <div class="stat">
+              <p class="statT">Total spent</p>
+              <p class="statV" id="outSpent">$—</p>
+            </div>
+
+            <div class="stat">
+              <p class="statT">Remaining</p>
+              <p class="statV" id="outRemain">—</p>
+            </div>
+
+            <div class="stat">
+              <p class="statT">Raw bones (before rounding)</p>
+              <p class="statV" id="outRawBones">—</p>
+            </div>
+
+            <div class="stat">
+              <p class="statT">Effective bone/rod</p>
+              <p class="statV" id="outEffRatio">—</p>
+            </div>
           </div>
 
-          <div class="stat">
-            <p class="statT">Effective bone/rod</p>
-            <p class="statV" id="outEffRatio">—</p>
+          <div class="formula" title="Formula used">
+            <span class="arrow">➜</span>
+            <span id="outNote">bones = floor(multiplier × rods), then rounded down to the nearest</span>
           </div>
-        </div>
-
-        <div class="formula" title="Formula used">
-          <span class="arrow">➜</span>
-          <span id="outNote">bones = floor(multiplier × rods), then rounded down to the nearest</span>
         </div>
       </div>
     </section>
@@ -760,17 +963,8 @@
     money: "https://i.postimg.cc/BPJ3L2p7/money.png",
   };
 
-  // Assign icons
-  const setSrc = (id, url) => { const el = document.getElementById(id); if (el) el.src = url; };
-  setSrc("iconMoneyA", ICON_URLS.money);
-  setSrc("iconMoneyB", ICON_URLS.money);
-  setSrc("iconRodA", ICON_URLS.rod);
-  setSrc("iconRodB", ICON_URLS.rod);
-  setSrc("iconBoneA", ICON_URLS.bone);
-  setSrc("iconBoneB", ICON_URLS.bone);
-  setSrc("iconBoneC", ICON_URLS.bone);
-
   const SCALE = 10000n; // 4 decimals of precision for money math
+  const INPUT_IDLE_MS = 2000;
 
   const $ = (id) => document.getElementById(id);
 
@@ -795,6 +989,154 @@
   const prefersReducedMotion = () =>
     !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
+  // Boot sequence: loading bar -> flare ring -> reveal background + contents
+  function setBootState(state){
+    document.documentElement.classList.remove("boot0","boot1","boot2");
+    document.documentElement.classList.add(state);
+  }
+
+  function roundedRectPath(w, h, r){
+    const rr = Math.max(0, Math.min(r, Math.min(w, h) / 2));
+    // Start at top edge (after top-left corner), go clockwise.
+    return [
+      `M ${rr} 0`,
+      `H ${w - rr}`,
+      `A ${rr} ${rr} 0 0 1 ${w} ${rr}`,
+      `V ${h - rr}`,
+      `A ${rr} ${rr} 0 0 1 ${w - rr} ${h}`,
+      `H ${rr}`,
+      `A ${rr} ${rr} 0 0 1 0 ${h - rr}`,
+      `V ${rr}`,
+      `A ${rr} ${rr} 0 0 1 ${rr} 0`,
+      `Z`
+    ].join(" ");
+  }
+
+  // Build per-pane keyframes so the flare subtly eases at corners (no mask-composite needed).
+  function setupBootRings(){
+    const panes = Array.from(document.querySelectorAll(".pane"));
+    if (!panes.length) return;
+
+    let css = "";
+    panes.forEach((pane, idx) => {
+      const svg = pane.querySelector("svg.bootRing");
+      const path = svg?.querySelector("path.bootRingPath");
+      if (!svg || !path) return;
+
+      const rect = pane.getBoundingClientRect();
+      const w = Math.max(10, Math.round(rect.width));
+      const h = Math.max(10, Math.round(rect.height));
+
+      const cs = getComputedStyle(pane);
+      const r = parseFloat(cs.borderTopLeftRadius) || 28;
+
+      svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+      svg.setAttribute("preserveAspectRatio", "none");
+      path.setAttribute("d", roundedRectPath(w, h, r));
+
+      // Perimeter length in SVG units
+      const L = path.getTotalLength();
+
+      // Single "flare segment" length (scaled to perimeter; clamped)
+      const seg = Math.max(86, Math.min(200, L * 0.16));
+      path.style.strokeDasharray = `${seg} ${L}`;
+
+      // Distances to the end of each rounded corner (clockwise)
+      const rr = Math.max(0, Math.min(r, Math.min(w, h) / 2));
+      const top = Math.max(0, w - 2 * rr);
+      const side = Math.max(0, h - 2 * rr);
+      const arc = (Math.PI / 2) * rr;
+
+      const d1 = top + arc;
+      const d2 = d1 + side + arc;
+      const d3 = d2 + top + arc;
+      const d4 = L;
+
+      const dur = 2000;      // ms (matches CSS)
+      const dwell = 70;      // ms (subtle ease / hang at corners)
+      const totalDwell = dwell * 3; // no dwell at final end
+      const travel = Math.max(1, dur - totalDwell);
+
+      const l1 = Math.max(0, d1);
+      const l2 = Math.max(0, d2 - d1);
+      const l3 = Math.max(0, d3 - d2);
+      const l4 = Math.max(0, d4 - d3);
+      const sum = (l1 + l2 + l3 + l4) || 1;
+
+      const t1 = travel * (l1 / sum);
+      const t2 = travel * (l2 / sum);
+      const t3 = travel * (l3 / sum);
+      const t4 = travel * (l4 / sum);
+
+      let t = 0;
+      const p = (ms) => (ms / dur) * 100;
+
+      const p0 = 0;
+      t += t1; const p1 = p(t);
+      const p1b = p(t + dwell); t += dwell;
+
+      t += t2; const p2 = p(t);
+      const p2b = p(t + dwell); t += dwell;
+
+      t += t3; const p3 = p(t);
+      const p3b = p(t + dwell); t += dwell;
+
+      t += t4; const p4 = 100;
+
+      const ease = "cubic-bezier(.25,.85,.25,1)";
+      const name = `ringMove${idx}`;
+
+      css += `@keyframes ${name}{\n`
+        + `  0%{stroke-dashoffset:0;animation-timing-function:${ease};}\n`
+        + `  ${p1.toFixed(3)}%{stroke-dashoffset:${(-d1).toFixed(3)};}\n`
+        + `  ${p1b.toFixed(3)}%{stroke-dashoffset:${(-d1).toFixed(3)};animation-timing-function:${ease};}\n`
+        + `  ${p2.toFixed(3)}%{stroke-dashoffset:${(-d2).toFixed(3)};}\n`
+        + `  ${p2b.toFixed(3)}%{stroke-dashoffset:${(-d2).toFixed(3)};animation-timing-function:${ease};}\n`
+        + `  ${p3.toFixed(3)}%{stroke-dashoffset:${(-d3).toFixed(3)};}\n`
+        + `  ${p3b.toFixed(3)}%{stroke-dashoffset:${(-d3).toFixed(3)};animation-timing-function:${ease};}\n`
+        + `  100%{stroke-dashoffset:${(-d4).toFixed(3)};}\n`
+        + `}\n`;
+
+      // Store the generated keyframe name on this path
+      path.style.setProperty("--ringAnim", name);
+    });
+
+    if (!css) return;
+    let styleEl = document.getElementById("bootRingKF");
+    if (!styleEl){
+      styleEl = document.createElement("style");
+      styleEl.id = "bootRingKF";
+      document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = css;
+  }
+
+  function startBoot(){
+    if (prefersReducedMotion()){
+      setBootState("boot2");
+      return;
+    }
+    // Prepare ring paths while layout is stable (still boot0).
+    setupBootRings();
+
+    // boot0: loading bar (CSS anim)
+    // boot1: show panes + ring
+    // boot2: reveal background + contents
+    window.setTimeout(() => setBootState("boot1"), 820);
+    window.setTimeout(() => setBootState("boot2"), 2820);
+  }
+  window.addEventListener("load", startBoot, { once: true });
+
+  // Assign icons
+  const setSrc = (id, url) => { const el = document.getElementById(id); if (el) el.src = url; };
+  setSrc("iconMoneyA", ICON_URLS.money);
+  setSrc("iconMoneyB", ICON_URLS.money);
+  setSrc("iconRodA", ICON_URLS.rod);
+  setSrc("iconRodB", ICON_URLS.rod);
+  setSrc("iconBoneA", ICON_URLS.bone);
+  setSrc("iconBoneB", ICON_URLS.bone);
+  setSrc("iconBoneC", ICON_URLS.bone);
+
   function pulse(el){
     if (!el) return;
     el.classList.remove("pulse");
@@ -818,7 +1160,7 @@
   function normalizeNumberString(input){
     // Allow ":" as decimal separator (e.g., 171:1), allow leading "." too.
     let s = String(input ?? "").trim();
-    s = s.replace(/^[^\d.:]+/g, ""); // strip leading currency/symbols (keep leading '.' / ':')
+    s = s.replace(/^[^\d.:/]+/g, ""); // strip leading symbols (keep leading '.' / ':' / '/')
     s = stripSeparators(s);
     s = s.replace(/:/g, ".");
     return s;
@@ -986,103 +1328,102 @@
     return { rods, bonesRaw, bones, spent: cost, remain, rodStep };
   }
 
-  // Split-flap overlay animation (keeps final formatting identical)
-  const flapActive = new WeakMap();
-  const FLAP_DUR_MS = 220;     // each half
-  const FLAP_STAGGER_MS = 18;  // per character (right-to-left)
+  // Split-flap rendering: digits only, commas as plain text, width auto = digits needed.
+  function setFlapValue(wrapper, formatted){
+    const s = String(formatted ?? "—");
+    wrapper.setAttribute("aria-label", s);
 
-  function makeLayer(cls, ch){
-    const layer = document.createElement("span");
-    layer.className = "layer " + cls;
-    layer.textContent = (ch === " " ? "\u00A0" : ch);
-    return layer;
-  }
+    // Reset any previous "fit" scaling before re-render.
+    wrapper.style.fontSize = "";
 
-  function setFlapText(el, nextText, animate){
-    if (!el) return;
-
-    const newText = String(nextText ?? "");
-    const oldText = el.dataset.plain ?? el.textContent ?? "";
-
-    if (oldText === newText) return;
-
-    // Cancel any in-flight animation
-    const prev = flapActive.get(el);
-    if (prev){
-      clearTimeout(prev.t);
-      if (prev.overlay && prev.overlay.parentNode) prev.overlay.remove();
-      el.classList.remove("flapAnimating");
-      flapActive.delete(el);
-    }
-
-    if (!animate || prefersReducedMotion()){
-      el.textContent = newText;
-      el.dataset.plain = newText;
-      el.setAttribute("aria-label", newText);
+    if (!/[0-9]/.test(s)){
+      wrapper.dataset.layout = "";
+      wrapper.dataset.value = s;
+      wrapper.innerHTML = `<span class="resDash">—</span>`;
       return;
     }
 
-    const overlay = document.createElement("span");
-    overlay.className = "flapOverlay";
-    overlay.style.setProperty("--flapDur", `${FLAP_DUR_MS}ms`);
+    const clean = s.replace(/[^\d,]/g, "");
+    const groups = clean.split(",").filter(Boolean);
+    const layout = groups.map(g => g.length).join("|");
+    const prevLayout = wrapper.dataset.layout || "";
 
-    const a = [...oldText];
-    const b = [...newText];
-    const len = Math.max(a.length, b.length); // left-aligned to avoid "jump" at animation start
+    wrapper.dataset.value = clean;
 
-    for (let i = 0; i < len; i++){
-      const oldC = a[i] ?? " ";
-      const newC = b[i] ?? " ";
+    // Rebuild only if layout changed (group count/widths).
+    if (layout !== prevLayout){
+      wrapper.innerHTML = "";
+      groups.forEach((g, i) => {
+        const flap = document.createElement("hotfx-split-flap");
+        flap.className = "sfGroup";
+        flap.setAttribute("width", String(g.length));
+        flap.setAttribute("height", "1");
+        flap.setAttribute("speed", "45");
+        flap.setAttribute("characters", " 0123456789");
+        flap.textContent = g;
+        wrapper.appendChild(flap);
 
-      const digit = document.createElement("span");
-      digit.className = "flapDigit";
-
-      // Stagger from right-to-left (airport boards/odometer vibe)
-      digit.style.setProperty("--d", `${(len - 1 - i) * FLAP_STAGGER_MS}ms`);
-
-      // Static layers: top = new, bottom = old (so start shows old, end shows new)
-      digit.appendChild(makeLayer("top static", newC));
-      digit.appendChild(makeLayer("bottom static", oldC));
-
-      if (oldC !== newC){
-        digit.classList.add("play");
-        digit.appendChild(makeLayer("top flip", oldC));
-        digit.appendChild(makeLayer("bottom flip", newC));
-      }
-
-      overlay.appendChild(digit);
+        if (i < groups.length - 1){
+          const sep = document.createElement("span");
+          sep.className = "sfSep";
+          sep.textContent = ",";
+          wrapper.appendChild(sep);
+        }
+      });
+      wrapper.dataset.layout = layout;
+    } else {
+      const flaps = Array.from(wrapper.querySelectorAll("hotfx-split-flap.sfGroup"));
+      groups.forEach((g, i) => {
+        const flap = flaps[i];
+        if (!flap) return;
+        if (flap.getAttribute("width") !== String(g.length)) flap.setAttribute("width", String(g.length));
+        flap.textContent = g;
+      });
     }
 
-    el.appendChild(overlay);
-    el.classList.add("flapAnimating");
-    el.setAttribute("aria-label", newText);
-
-    const total = (FLAP_DUR_MS * 2) + (FLAP_STAGGER_MS * Math.max(0, len - 1)) + 60;
-    const t = setTimeout(() => {
-      if (overlay.parentNode) overlay.remove();
-      el.classList.remove("flapAnimating");
-      el.textContent = newText;
-      el.dataset.plain = newText;
-      flapActive.delete(el);
-    }, total);
-
-    flapActive.set(el, { overlay, t });
+    // Fit-to-width pass (prevents overflow on narrow viewports).
+    requestAnimationFrame(() => fitFlapToWidth(wrapper));
   }
 
-  // Debounced calculate while typing
-  const INPUT_IDLE_MS = 2000;
-  let calcTimer = null;
+  function fitFlapToWidth(wrapper){
+    const parent = wrapper.parentElement;
+    if (!parent) return;
 
+    // Reset first to measure natural size
+    wrapper.style.fontSize = "";
+
+    const avail = Math.max(0, parent.clientWidth - 2);
+    if (!avail) return;
+
+    const w = wrapper.scrollWidth;
+    if (w <= avail) return;
+
+    const base = parseFloat(getComputedStyle(wrapper).fontSize) || 46;
+    const scale = avail / w;
+
+    // Clamp so it doesn't become unreadable
+    const next = Math.max(22, base * scale);
+    wrapper.style.fontSize = `${next}px`;
+  }
+
+  function refitOutputs(){
+    fitFlapToWidth(els.outBones);
+    fitFlapToWidth(els.outRods);
+  }
+  window.addEventListener("resize", () => requestAnimationFrame(refitOutputs));
+
+  // Debounced calculate while typing
+  let calcTimer = null;
   function scheduleCalculate(){
     if (calcTimer) clearTimeout(calcTimer);
     calcTimer = setTimeout(() => {
       calcTimer = null;
-      calculate({ animateFlap: true, animatePulse: true });
+      calculate({ animatePulse: true });
     }, INPUT_IDLE_MS);
   }
 
   function calculate(opts = {}){
-    const { animateFlap = true, animatePulse = true } = opts;
+    const { animatePulse = true } = opts;
 
     clearErr();
 
@@ -1113,7 +1454,6 @@
 
     // Normalize steps
     if (rodStep <= 1n) rodStep = 1n; // avoid divide by zero + keep meaning "no rounding"
-    // boneStep can be 0/1 => treated as no rounding
 
     try{
       localStorage.setItem("rb_budget", els.budget.value);
@@ -1133,10 +1473,13 @@
       rodRoundStep: rodStep,
     });
 
-    setFlapText(els.outRods, fmtInt(res.rods), animateFlap);
-    setFlapText(els.outBones, fmtInt(res.bones), animateFlap);
+    const rodsText = fmtInt(res.rods);
+    const bonesText = fmtInt(res.bones);
 
-    // Match the screenshot styling: Total spent has "$", Remaining no "$"
+    setFlapValue(els.outRods, rodsText);
+    setFlapValue(els.outBones, bonesText);
+
+    // Match styling: Total spent has "$", Remaining no "$"
     els.outSpent.textContent = fmtMoney2(res.spent, true);
     els.outRemain.textContent = fmtMoney2(res.remain, false);
 
@@ -1178,16 +1521,17 @@
   // Events
   els.calcBtn.addEventListener("click", () => {
     if (calcTimer) { clearTimeout(calcTimer); calcTimer = null; }
-    calculate({ animateFlap: true, animatePulse: true });
+    calculate({ animatePulse: true });
   });
 
   [els.budget, els.bonePrice, els.rodPrice, els.multiplier, els.roundStep, els.rodRoundStep].forEach((el) => {
     el.addEventListener("input", scheduleCalculate);
-    el.addEventListener("change", () => calculate({ animateFlap: true, animatePulse: true }));
+    el.addEventListener("change", () => calculate({ animatePulse: true }));
   });
 
   loadDefaults();
-  calculate({ animateFlap: false, animatePulse: false });
+  // Compute once immediately; the boot sequence hides the content until the intro finishes.
+  calculate({ animatePulse: false });
 })();
 </script>
 </body>
